@@ -1,0 +1,6 @@
+{
+  "name": "CreatorIQ",
+  "description": "AI Video Content Engine for YouTube Creators: Title Intelligence, High-CTR Thumbnail Studio, YouTube Feed Competitor A/B Simulator, and Viral 9:16 Shorts Repurposer",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

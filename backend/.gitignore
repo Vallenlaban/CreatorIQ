@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+*$py.class
+*.db
+uploads/videos/*
+uploads/images/*
+uploads/faces/*
+uploads/outputs/*
+!uploads/videos/.gitkeep
+!uploads/images/.gitkeep
+!uploads/faces/.gitkeep
+!uploads/outputs/.gitkeep
