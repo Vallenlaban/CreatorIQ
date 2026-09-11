@@ -37,7 +37,9 @@ import { generateStandaloneViralClips } from "./server/viralIntelligence";
 dotenv.config();
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.APPLET_ID
+  ? 3000
+  : (process.env.PORT ? parseInt(process.env.PORT, 10) : 3000);
 
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
