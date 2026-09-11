@@ -1,0 +1,11 @@
+# Nixpacks configuration for Railway deployment
+# Ensures FFmpeg is installed for video slicing, audio extraction, and 9:16 vertical rendering
+
+[phases.setup]
+nixPkgs = ["nodejs-20_x", "ffmpeg"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"

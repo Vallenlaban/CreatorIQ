@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CreatorIQ Studio | AI Title Intelligence & Thumbnail Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        outfit: ['"Outfit"', 'sans-serif'],
+                    },
+                    colors: {
+                        bg: {
+                            deep: '#0B0F19',
+                            slate: '#111827',
+                            indigo: '#1E1B4B',
+                            purple: '#312E81',
+                        },
+                        surface: {
+                            50: 'rgba(255, 255, 255, 0.03)',
+                            100: 'rgba(255, 255, 255, 0.05)',
+                            200: 'rgba(255, 255, 255, 0.1)',
+                        },
+                        accent: {
+                            purple: '#A855F7',
+                            pink: '#EC4899',
+                            blue: '#3B82F6',
+                            cyan: '#06B6D4',
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-brand': 'linear-gradient(135deg, #A855F7 0%, #EC4899 50%, #3B82F6 100%)',
+                        'gradient-glass': 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.02) 100%)',
+                        'gradient-mesh': 'radial-gradient(at 40% 20%, hsla(259, 100%, 75%, 0.15) 0px, transparent 50%), radial-gradient(at 80% 0%, hsla(189, 100%, 56%, 0.15) 0px, transparent 50%), radial-gradient(at 0% 50%, hsla(339, 100%, 55%, 0.15) 0px, transparent 50%)',
+                    },
+                    animation: {
+                        'pulse-glow': 'pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'spin-slow': 'spin 12s linear infinite',
+                    },
+                    keyframes: {
+                        'pulse-glow': {
+                            '0%, 100%': { opacity: 0.4, transform: 'scale(1)' },
+                            '50%': { opacity: 0.8, transform: 'scale(1.05)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0B0F19;
+            color: #ffffff;
+            overflow-x: hidden;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* Prevent white border or focus outline flash on input click */
+        input, textarea, select {
+            outline: none !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none !important;
+            box-shadow: none !important;
+            border-color: #A855F7 !important;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.6);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-glow {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .btn-glow::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: linear-gradient(135deg, #A855F7, #EC4899, #3B82F6);
+            border-radius: inherit;
+            z-index: -1;
+            opacity: 0;
+            filter: blur(12px);
+            transition: opacity 0.3s ease;
+        }
+
+        .btn-glow:hover::after {
+            opacity: 0.8;
+        }
+
+        /* Animated Blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .blob-purple { background: rgba(168, 85, 247, 0.25); }
+        .blob-blue { background: rgba(59, 130, 246, 0.25); }
+        .blob-pink { background: rgba(236, 72, 153, 0.2); }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in-up {
+            animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-slate-100 flex flex-col h-screen overflow-hidden relative bg-bg-deep">
+
+    <!-- FULLSCREEN INITIAL LOADING SCREEN (2 SECONDS) -->
+    <div id="studioLoadingScreen" class="fixed inset-0 z-[100] bg-bg-deep flex flex-col items-center justify-center p-6 transition-opacity duration-700 opacity-100 select-none">
+        <!-- Background Glows -->
+        <div class="absolute inset-0 bg-gradient-mesh opacity-80 pointer-events-none"></div>
+        
+        <div class="relative z-10 flex flex-col items-center max-w-md w-full text-center space-y-6">
+            <!-- Animated Glowing Logo -->
+            <div class="relative">
+                <div class="w-20 h-20 rounded-full bg-gradient-brand flex items-center justify-center shadow-[0_0_50px_rgba(168,85,247,0.8)] animate-pulse">
+                    <svg class="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/>
+                    </svg>
+                </div>
+                <!-- Outer Pulsing Ring -->
+                <div class="absolute -inset-3 rounded-full border border-accent-purple/50 animate-ping opacity-60"></div>
+            </div>
+
+            <!-- Title & Animated Status -->
+            <div class="space-y-2">
+                <h2 class="font-outfit font-extrabold text-3xl text-white tracking-tight">
+                    Creator<span class="text-transparent bg-clip-text bg-gradient-brand">IQ</span> Studio
+                </h2>
+                <div class="flex items-center justify-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-accent-purple animate-ping"></span>
+                    <p id="loadingStatusText" class="text-xs font-bold text-zinc-300 tracking-wide">
+                        Initializing Studio Environment...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Sleek Animated Progress Bar -->
+            <div class="w-full bg-white/10 h-2.5 rounded-full overflow-hidden border border-white/10 p-0.5 shadow-inner">
+                <div id="loadingProgressBar" class="h-full bg-gradient-brand rounded-full w-0 transition-all duration-500 ease-out shadow-[0_0_15px_rgba(168,85,247,0.8)]"></div>
+            </div>
+
+            <!-- Feature Badges -->
+            <div class="flex items-center justify-center gap-3 text-[11px] text-zinc-400 font-extrabold uppercase tracking-widest pt-2">
+                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accent-purple"></span> Gemini AI</span>
+                <span class="text-zinc-600">•</span>
+                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accent-pink"></span> Title Generator</span>
+                <span class="text-zinc-600">•</span>
+                <span class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-accent-cyan"></span> Thumbnail AI</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Background Mesh -->
+    <div class="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-gradient-mesh">
+        <div class="blob blob-purple w-[800px] h-[800px] top-[-20%] left-[-10%] animate-pulse-glow"></div>
+        <div class="blob blob-blue w-[600px] h-[600px] bottom-[-10%] right-[-10%] animate-pulse-glow" style="animation-delay: 2s;"></div>
+        <div class="blob blob-pink w-[500px] h-[500px] top-[40%] left-[60%] animate-pulse-glow" style="animation-delay: 4s;"></div>
+    </div>
+
+    <!-- Studio Header Navigation Bar -->
+    <header class="w-full bg-bg-deep/90 backdrop-blur-xl border-b border-white/10 sticky top-0 z-50 px-4 sm:px-8 py-4 flex items-center justify-between shadow-2xl">
+        <a href="/" class="flex items-center gap-3 group">
+            <div class="w-9 h-9 rounded-full bg-gradient-brand flex items-center justify-center shadow-[0_0_15px_rgba(168,85,247,0.5)] group-hover:scale-105 transition-transform">
+                <svg class="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+            </div>
+            <div>
+                <span class="font-outfit font-bold text-xl tracking-tight text-white">Creator<span class="text-transparent bg-clip-text bg-gradient-brand">IQ</span></span>
+            </div>
+        </a>
+
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#00a2ff] flex items-center justify-center text-white shadow-lg border border-white/20 select-none pointer-events-none cursor-default" title="Account">
+                <i class="fa-solid fa-user text-white text-sm sm:text-base"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- Studio Main Body Container (Full-screen Edge-to-Edge) -->
+    <main class="flex-1 w-full h-[calc(100vh-65px)] flex flex-col md:flex-row overflow-hidden relative z-10">
+            
+        <!-- LEFT SIDEBAR / MOBILE BOTTOM NAV PANEL -->
+        <div class="w-full md:w-32 bg-bg-deep/95 border-t md:border-t-0 md:border-r border-white/10 p-2 sm:p-3 md:p-4 flex flex-row md:flex-col items-center justify-around md:justify-start gap-2 sm:gap-3 md:gap-4 shrink-0 z-20 order-2 md:order-1">
+                
+                <!-- Sidebar Item 1: Home -->
+                <button id="tabBtnHome" onclick="switchStudioTab('home')" class="studio-tab-btn group active w-full max-w-[88px] sm:max-w-[100px] md:max-w-none md:w-26 py-2 md:py-3 px-2 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 md:gap-1.5 transition-all duration-300 cursor-pointer relative bg-white/10 text-white border border-transparent">
+                    <div class="flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-accent-purple" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    </div>
+                    <span class="text-[11px] md:text-xs font-bold text-center leading-tight tracking-wide">Home</span>
+                </button>
+
+                <!-- Sidebar Item 2: Title Generator -->
+                <button id="tabBtnTitle" onclick="switchStudioTab('title')" class="studio-tab-btn group w-full max-w-[88px] sm:max-w-[100px] md:max-w-none md:w-26 py-2 md:py-3 px-2 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 md:gap-1.5 transition-all duration-300 cursor-pointer relative text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent">
+                    <div class="flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-accent-pink" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+                    </div>
+                    <span class="text-[11px] md:text-xs font-bold text-center leading-tight tracking-wide">Title Generator</span>
+                </button>
+
+                <!-- Sidebar Item 3: Thumbnail AI -->
+                <button id="tabBtnThumbnail" onclick="switchStudioTab('thumbnail')" class="studio-tab-btn group w-full max-w-[88px] sm:max-w-[100px] md:max-w-none md:w-26 py-2 md:py-3 px-2 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 md:gap-1.5 transition-all duration-300 cursor-pointer relative text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent">
+                    <div class="flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg class="w-5 h-5 md:w-6 md:h-6 text-accent-cyan" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5-5L5 21"/></svg>
+                    </div>
+                    <span class="text-[11px] md:text-xs font-bold text-center leading-tight tracking-wide">Thumbnail AI</span>
+                </button>
+
+            </div>
+
+            <!-- RIGHT MAIN APPLICATION AREA -->
+            <div class="flex-1 p-4 sm:p-6 lg:p-8 bg-bg-slate/40 overflow-y-auto h-full order-1 md:order-2">
+                
+                <!-- TAB LOADING ANIMATION (1 Second - Simple Circle Spinner) -->
+                <div id="tabSwitchLoading" class="hidden flex flex-col items-center justify-center min-h-[450px] p-8 text-center bg-black/40 border border-white/10 rounded-2xl">
+                    <div class="w-12 h-12 rounded-full border-4 border-white/10 border-t-accent-purple border-r-accent-pink animate-spin"></div>
+                </div>
+
+                <!-- TAB 1: HOME (BERANDA DASHBOARD) -->
+                <div id="tabContentHome" class="studio-tab-pane space-y-10">
+                    
+                    <!-- Welcome Hero Box -->
+                    <div class="relative p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-accent-purple/20 via-accent-pink/10 to-transparent border border-white/10 overflow-hidden">
+                        <div class="relative z-10 max-w-2xl">
+                            <span class="text-xs font-extrabold uppercase tracking-widest text-accent-pink bg-accent-pink/20 px-3 py-1 rounded-full border border-accent-pink/30">
+                                CreatorIQ Studio Dashboard
+                            </span>
+                            <h3 class="font-outfit text-2xl sm:text-4xl font-extrabold text-white mt-3">
+                                Welcome to Your AI Video Growth Studio
+                            </h3>
+                            <p class="text-zinc-300 text-sm sm:text-base mt-2 leading-relaxed">
+                                Select an AI tool from the sidebar or choose a quick action below to start optimizing your titles and thumbnails for maximum YouTube CTR.
+                            </p>
+
+                            <div class="flex flex-wrap gap-4 mt-6">
+                                <button onclick="switchStudioTab('title')" class="px-5 py-2.5 rounded-xl bg-accent-purple text-white font-bold text-sm flex items-center gap-2 shadow-lg hover:scale-105 transition-all cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+                                    Title Generator
+                                </button>
+                                <button onclick="switchStudioTab('thumbnail')" class="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm flex items-center gap-2 border border-white/15 transition-all cursor-pointer">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 15l-5-5L5 21"/></svg>
+                                    Thumbnail AI
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- TAB 2: FEATURE 1 - TITLE GENERATOR -->
+                <div id="tabContentTitle" class="studio-tab-pane hidden space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-accent-purple bg-accent-purple/10 px-3 py-1 rounded-full border border-accent-purple/20">
+                            Feature 1
+                        </span>
+                        <h3 class="font-outfit text-2xl font-extrabold text-white mt-2">Title Generator</h3>
+                    </div>
+
+                    <div class="flex flex-col gap-8">
+                        
+                        <!-- KIRI: Card Input -->
+                        <div class="p-6 rounded-2xl bg-black/40 border border-white/10 space-y-6 flex flex-col justify-between">
+                            <div class="space-y-3 text-center">
+                                <h4 class="text-xl sm:text-2xl font-bold text-white">Viral Title Generator</h4>
+                                <p class="text-sm text-zinc-300 leading-relaxed max-w-xl mx-auto">
+                                    Paste your video title. AI will analyze it and generate high-clicking variations instantly.
+                                </p>
+
+                                <div class="space-y-4 pt-2 text-left">
+                                    <div>
+                                        <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2">Video Title</label>
+                                        <input type="text" id="appTitleInput" placeholder="I tried [challenge] for 30 days" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:outline-none focus:ring-0 focus:border-accent-purple transition-colors duration-150">
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold text-zinc-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                                            <svg class="w-4 h-4 text-red-500 fill-current shrink-0" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                                            <span>Reference channels for style inspiration (Optional)</span>
+                                        </label>
+                                        <input type="text" id="appChannelUrlInput" placeholder="https://youtube.com/@creator" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:outline-none focus:ring-0 focus:border-accent-purple transition-colors duration-150">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="btnAnalyzeTitle" onclick="runTitleAnalysis()" disabled class="w-full btn-glow bg-gradient-brand text-white py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all opacity-50 cursor-not-allowed pointer-events-none">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                <span>Analyze Title</span>
+                            </button>
+                        </div>
+
+                        <!-- KANAN: Card Result -->
+                        <div class="p-6 rounded-2xl bg-black/40 border border-white/10 space-y-6">
+                            <!-- Initial Empty State -->
+                            <div id="titleInitialEmptyState" class="py-12 px-4 text-center space-y-3 flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 rounded-full bg-accent-pink/10 border border-accent-pink/30 flex items-center justify-center text-accent-pink mb-1">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>
+                                </div>
+                                <h5 class="text-sm font-bold text-white">Title Analysis Ready</h5>
+                                <p class="text-xs text-zinc-400 max-w-xs leading-relaxed">
+                                    Fill in your Video Title above and click <strong class="text-white">Analyze Title</strong> to generate high-CTR titles and AI insights.
+                                </p>
+                            </div>
+
+                            <!-- Loading State Shimmer -->
+                            <div id="titleLoadingState" class="hidden space-y-4 animate-pulse py-8 text-center">
+                                <div class="w-16 h-16 rounded-full border-4 border-accent-purple border-t-transparent animate-spin mx-auto mb-4"></div>
+                                <p id="titleLoadingText" class="text-sm font-bold text-accent-purple">Analyzing YouTube Search Volume & Competitors...</p>
+                                <div class="h-4 bg-white/10 rounded w-3/4 mx-auto"></div>
+                                <div class="h-4 bg-white/10 rounded w-1/2 mx-auto"></div>
+                            </div>
+
+                            <!-- Error Message Box -->
+                            <div id="titleErrorBox" class="hidden p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs space-y-2">
+                                <div class="flex items-center gap-2 font-bold text-red-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span>Analysis Error</span>
+                                </div>
+                                <p id="titleErrorText">Failed to analyze title. Please try again.</p>
+                            </div>
+
+                            <!-- Result Container -->
+                            <div id="titleResultBox" class="space-y-6 hidden">
+                                <!-- Top Status & Opportunity Score Header -->
+                                <div class="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex flex-col items-center justify-center min-w-[54px] px-2.5 py-1.5 rounded-lg bg-accent-purple/20 border border-accent-purple/40 shrink-0 shadow-lg">
+                                            <span id="titleOppScoreVal" class="text-xl font-black text-accent-purple leading-none">0</span>
+                                            <span class="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mt-0.5">SCORE</span>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <h6 id="titlePotentialText" class="text-sm font-extrabold text-white">Viral Potential</h6>
+                                                <span id="titleProviderBadge" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-accent-pink/20 text-accent-pink border border-accent-pink/30 uppercase">AI ENGINE</span>
+                                            </div>
+                                            <p id="titleYtStatus" class="text-xs text-zinc-400 mt-0.5">Connected to Live YouTube Intelligence</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-md flex items-center gap-1.5">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span>Real-Time Optimized</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Recommended Titles Container -->
+                                <div class="space-y-3">
+                                    <h5 class="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+                                        <span>Recommended Variations (Ranked by CTR)</span>
+                                        <span class="text-[10px] text-zinc-500 font-normal">Click Copy to use</span>
+                                    </h5>
+                                    
+                                    <div id="titleCardsContainer" class="space-y-3">
+                                        <!-- Dynamic Cards injected by runTitleAnalysis -->
+                                    </div>
+                                </div>
+
+                                <!-- Strategic Reasons / AI Insights -->
+                                <div id="titleInsightsSection" class="p-4 rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+                                    <h6 class="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
+                                        <svg class="w-4 h-4 text-accent-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span>Why These Titles Win (AI Strategy)</span>
+                                    </h6>
+                                    <ul id="titleReasonsList" class="space-y-2 text-xs text-zinc-300">
+                                        <!-- Dynamic Bullet Points -->
+                                    </ul>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- TAB 3: FEATURE 2 - THUMBNAIL AI -->
+                <div id="tabContentThumbnail" class="studio-tab-pane hidden space-y-8">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-accent-cyan bg-accent-cyan/10 px-3 py-1 rounded-full border border-accent-cyan/20">
+                            Feature 2
+                        </span>
+                        <h3 class="font-outfit text-2xl font-extrabold text-white mt-2">Thumbnail AI</h3>
+                    </div>
+
+                    <div class="flex flex-col gap-8">
+                        
+                        <!-- Card Generate Thumbnail & Settings -->
+                        <div class="p-6 rounded-2xl bg-black/40 border border-white/10 space-y-6">
+                            <div class="space-y-3 text-center">
+                                <h4 class="text-xl sm:text-2xl font-bold text-white">Generate Thumbnail</h4>
+                                <p class="text-sm text-zinc-300 leading-relaxed max-w-xl mx-auto">
+                                    Upload your video or paste the URL. AI will analyze the content and generate high-clicking thumbnails instantly.
+                                </p>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <div class="relative flex items-center">
+                                    <div class="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                        </svg>
+                                    </div>
+                                    <input id="videoLinkInput" type="text" oninput="handleVideoLinkInput(this.value)" onkeyup="handleVideoLinkInput(this.value)" onchange="handleVideoLinkInput(this.value)" placeholder="Paste a video link (e.g. YouTube)" class="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-500 outline-none focus:outline-none focus:ring-0 focus:border-accent-purple transition-all duration-150 shadow-inner">
+                                </div>
+
+                                <!-- Detected Video Info Preview Card -->
+                                <div id="ytVideoInfoCard" class="hidden rounded-xl bg-white/[0.04] border border-white/10 p-3 flex items-center gap-3 transition-all animate-fade-in-up">
+                                    <div class="relative w-20 h-12 rounded-lg overflow-hidden bg-black shrink-0 border border-white/10 shadow">
+                                        <img id="ytVideoThumbImg" src="" alt="Video Frame" class="w-full h-full object-cover">
+                                        <span class="absolute bottom-1 right-1 bg-red-600 text-white text-[9px] font-black px-1 rounded shadow">YT</span>
+                                    </div>
+                                    <div class="flex-1 min-w-0 text-left">
+                                        <div class="flex items-center gap-1.5 mb-0.5">
+                                            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Video Content & Frames Extracted</span>
+                                        </div>
+                                        <p id="ytVideoTitleText" class="text-xs font-bold text-white truncate"></p>
+                                        <p id="ytVideoChannelText" class="text-[11px] text-zinc-400 truncate"></p>
+                                    </div>
+                                </div>
+
+                                <div class="text-center pt-0.5 space-y-2">
+                                    <p class="text-sm text-zinc-300">
+                                        Or <span onclick="document.getElementById('videoFileInput').click()" class="text-accent-cyan font-bold cursor-pointer hover:underline transition-all">Upload video directly</span>
+                                    </p>
+                                    <input type="file" id="videoFileInput" accept="video/*" onchange="handleVideoFileSelect(event)" class="hidden">
+                                    <div id="videoFileBadge" class="hidden text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 py-1.5 px-3 rounded-lg flex items-center justify-center gap-2">
+                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        <span id="videoFileName"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Reference Image & Aspect Ratio Settings Card -->
+                                <div class="rounded-xl bg-white/[0.03] border border-white/10 p-4 space-y-3.5 mt-2 text-left">
+                                    <!-- Row 1: Reference Image (Optional) -->
+                                    <div class="flex items-center justify-between gap-4">
+                                        <span class="text-sm font-semibold text-white">Reference Image (Optional)</span>
+                                        <div class="shrink-0">
+                                            <button type="button" onclick="document.getElementById('refImageInput').click()" class="px-3.5 py-1.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-lg text-xs font-semibold text-white transition-all cursor-pointer">
+                                                Choose file
+                                            </button>
+                                            <input type="file" id="refImageInput" accept="image/*" onchange="handleRefImageSelect(event)" class="hidden">
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="refImageBadge" class="hidden text-xs font-medium text-purple-300 bg-purple-500/10 border border-purple-500/20 py-1.5 px-3 rounded-lg flex items-center justify-between gap-2">
+                                        <div class="flex items-center gap-2 truncate">
+                                            <svg class="w-3.5 h-3.5 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            <span id="refImageName" class="truncate"></span>
+                                        </div>
+                                        <button type="button" onclick="clearRefImage()" class="text-zinc-400 hover:text-white font-bold ml-2">✕</button>
+                                    </div>
+
+                                    <div class="border-t border-white/5"></div>
+
+                                    <!-- Row 2: Aspect Ratio -->
+                                    <div class="flex items-center justify-between gap-4 relative">
+                                        <span class="text-sm font-semibold text-white">Aspect Ratio</span>
+                                        
+                                        <!-- Custom Dropdown Selector -->
+                                        <div class="relative inline-block text-left">
+                                            <button id="aspectRatioBtn" type="button" onclick="toggleAspectRatioDropdown(event)" class="px-3 py-1.5 bg-white/10 hover:bg-white/15 border border-white/10 rounded-lg text-xs font-semibold text-white flex items-center gap-2 transition-all cursor-pointer">
+                                                <span id="aspectRatioIcon" class="inline-block w-4 h-2.5 border border-current rounded-xs"></span>
+                                                <span id="aspectRatioText" class="font-bold">16:9</span>
+                                                <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                            </button>
+
+                                            <!-- Dropdown Menu -->
+                                            <div id="aspectRatioDropdown" class="hidden opacity-0 scale-95 pointer-events-none absolute right-0 mt-2 w-60 bg-[#161B26] border border-white/15 rounded-xl shadow-2xl z-30 p-1.5 space-y-1 transition-all duration-150 ease-out origin-top-right">
+                                                <!-- 9:16 Option -->
+                                                <div id="opt-9-16" onclick="selectAspectRatio('9:16', 'vertical')" class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-zinc-300 hover:text-white">
+                                                    <div class="flex items-center gap-2 font-semibold text-xs">
+                                                        <span class="inline-block w-2.5 h-4 border border-current rounded-xs"></span>
+                                                        <span>9:16</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5 text-zinc-400 text-xs">
+                                                        <i class="fa-brands fa-facebook-f"></i>
+                                                        <i class="fa-brands fa-instagram"></i>
+                                                        <i class="fa-brands fa-tiktok"></i>
+                                                        <i class="fa-brands fa-snapchat"></i>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 16:9 Option (Default Active) -->
+                                                <div id="opt-16-9" onclick="selectAspectRatio('16:9', 'horizontal')" class="flex items-center justify-between px-3 py-2 rounded-lg bg-white/15 text-white font-bold cursor-pointer transition-colors">
+                                                    <div class="flex items-center gap-2 text-xs">
+                                                        <span class="inline-block w-4 h-2.5 border border-current rounded-xs"></span>
+                                                        <span>16:9</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5 text-zinc-300 text-xs">
+                                                        <i class="fa-brands fa-facebook-f"></i>
+                                                        <i class="fa-brands fa-youtube"></i>
+                                                        <i class="fa-brands fa-x-twitter"></i>
+                                                    </div>
+                                                </div>
+
+                                                <!-- 1:1 Option -->
+                                                <div id="opt-1-1" onclick="selectAspectRatio('1:1', 'square')" class="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors text-zinc-300 hover:text-white">
+                                                    <div class="flex items-center gap-2 font-semibold text-xs">
+                                                        <span class="inline-block w-3 h-3 border border-current rounded-xs"></span>
+                                                        <span>1:1</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-1.5 text-zinc-400 text-xs">
+                                                        <i class="fa-brands fa-facebook-f"></i>
+                                                        <i class="fa-brands fa-instagram"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Button & Copyright Disclaimer Grouped for Tight Spacing -->
+                            <div class="space-y-2">
+                                <button id="btnGenerateThumbnail" onclick="runThumbnailGeneration()" disabled class="w-full btn-glow bg-gradient-brand text-white py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all opacity-50 cursor-not-allowed pointer-events-none">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    <span>Generate Thumbnail</span>
+                                </button>
+
+                                <p class="text-[11px] sm:text-xs text-zinc-400 text-center leading-tight max-w-md mx-auto pt-0.5">
+                                    By continuing, you confirm the video is your own. Using others' content may violate copyright laws.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- KANAN: Preview Area & Grid -->
+                        <div class="space-y-6">
+                            
+                            <!-- Initial Empty State -->
+                            <div id="thumbInitialEmptyState" class="p-12 rounded-2xl bg-black/40 border border-white/10 text-center space-y-3 flex flex-col items-center justify-center">
+                                <div class="w-12 h-12 rounded-full bg-accent-cyan/10 border border-accent-cyan/30 flex items-center justify-center text-accent-cyan mb-1">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                </div>
+                                <h5 class="text-sm font-bold text-white">Thumbnail Generation Ready</h5>
+                                <p class="text-xs text-zinc-400 max-w-sm leading-relaxed">
+                                    Upload a video or paste a YouTube URL, then click <strong class="text-white">Generate Thumbnail</strong> to create 3 high-converting AI thumbnail variations.
+                                </p>
+                            </div>
+
+                            <!-- Loading State Shimmer -->
+                            <div id="thumbLoadingState" class="hidden p-8 rounded-2xl bg-black/40 border border-white/10 text-center space-y-4 animate-pulse">
+                                <div class="w-12 h-12 rounded-full border-4 border-accent-pink border-t-transparent animate-spin mx-auto"></div>
+                                <p id="thumbLoadingText" class="text-sm font-bold text-accent-pink">Analyzing Video Frames & Rendering 3 AI Variations...</p>
+                                <p class="text-xs text-zinc-400">Processing via Gemini 2.5 Flash / FLUX.1 neural image generator</p>
+                            </div>
+
+                            <!-- Error Message Box -->
+                            <div id="thumbErrorBox" class="hidden p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs space-y-2">
+                                <div class="flex items-center gap-2 font-bold text-red-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span>Generation Error</span>
+                                </div>
+                                <p id="thumbErrorText">Failed to generate thumbnails. Please check your inputs and try again.</p>
+                            </div>
+
+                            <!-- Result Meta Info Bar -->
+                            <div id="thumbMetaBar" class="hidden p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span id="thumbEngineBadge" class="font-extrabold text-white">AI Engine Active</span>
+                                    <span id="thumbModelBadge" class="px-2 py-0.5 rounded-md bg-white/10 text-zinc-300 text-[10px]">FLUX.1 / Gemini</span>
+                                </div>
+                                <div class="text-zinc-400 text-[11px] flex items-center gap-2">
+                                    <span id="thumbRatioBadge" class="bg-accent-purple/20 text-accent-purple font-bold px-2 py-0.5 rounded border border-accent-purple/30">16:9</span>
+                                    <span>3 High-CTR Variations Generated</span>
+                                </div>
+                            </div>
+
+                            <!-- Thumbnails Grid -->
+                            <div id="thumbResultsGrid" class="grid sm:grid-cols-3 gap-4 hidden">
+                                <!-- Dynamically populated by runThumbnailGeneration -->
+                            </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+    </main>
+
+    <!-- Image Preview Lightbox Modal -->
+    <div id="imagePreviewModal" class="fixed inset-0 z-50 hidden bg-black/90 backdrop-blur-md items-center justify-center p-4 sm:p-8 opacity-0 pointer-events-none transition-opacity duration-300 ease-out" onclick="closeImageModal(event)">
+        <div id="modalContentBox" class="relative max-w-5xl w-full flex flex-col items-center transform scale-75 opacity-0 transition-all duration-300 ease-out">
+            <!-- Image View Box -->
+            <div id="modalViewBoxContainer" class="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/20 shadow-[0_0_50px_rgba(168,85,247,0.3)] bg-black flex items-center justify-center select-none">
+                <!-- Close Button (Top-Right inside container) -->
+                <button onclick="closeImageModal()" class="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/30 shadow-xl transition-all hover:scale-110 cursor-pointer z-40" title="Close Preview">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+
+                <!-- Base Image -->
+                <img id="modalPreviewImg" src="" alt="Thumbnail Full Preview" class="w-full h-full object-cover transition-transform duration-200 ease-out select-none">
+
+                <!-- Dark Vignette Gradient for High Typography Contrast -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent pointer-events-none z-10"></div>
+
+                <!-- Top Badges Overlay -->
+                <div class="absolute top-4 left-4 z-20 flex items-center gap-2 pointer-events-none">
+                    <span id="modalCTR" class="bg-black/85 text-emerald-400 text-xs font-black px-2.5 py-1 rounded-md border border-emerald-500/40 shadow-lg">
+                        96% CTR
+                    </span>
+                    <span id="modalBadge" class="bg-accent-purple text-white text-xs font-black px-2.5 py-1 rounded-md shadow-lg border border-accent-purple/50">
+                        BEST CTR
+                    </span>
+                </div>
+
+                <!-- YouTube Viral Hook Typography Overlay -->
+                <div class="absolute bottom-6 sm:bottom-8 left-6 sm:left-8 right-6 sm:right-8 z-20 pointer-events-none flex flex-col items-start select-none">
+                    <span id="modalSubBadge" class="mb-1 text-[10px] sm:text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded bg-red-600 text-white shadow-md">
+                        VIRAL HOOK
+                    </span>
+                    <h2 id="modalHookText" class="font-black text-left uppercase leading-none tracking-tight transform -rotate-2 origin-bottom-left text-2xl sm:text-4xl md:text-5xl lg:text-6xl drop-shadow-[0_6px_20px_rgba(0,0,0,0.98)]"
+                        style="color: #FFE600; text-shadow: -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 3px 3px 0 #000, 0 6px 18px rgba(0,0,0,0.95); font-family: 'Impact', 'Outfit', sans-serif;">
+                        VIRAL HOOK!
+                    </h2>
+                </div>
+
+                <!-- Side Nav Buttons (Overlay on Left & Right) -->
+                <button onclick="prevGalleryImage(event)" class="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 shadow-lg transition-all hover:scale-110 cursor-pointer z-30" title="Previous Image">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+                </button>
+                <button onclick="nextGalleryImage(event)" class="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/80 text-white flex items-center justify-center border border-white/20 shadow-lg transition-all hover:scale-110 cursor-pointer z-30" title="Next Image">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+
+                <!-- Floating Bottom Control Toolbar Bar -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 rounded-full bg-black/60 border border-white/20 text-white shadow-2xl backdrop-blur-md z-30">
+                    <!-- Counter -->
+                    <span id="modalCounter" class="text-white/90 font-mono text-xs font-bold px-1">1/3</span>
+
+                    <span class="w-px h-4 bg-white/20"></span>
+
+                    <!-- Left Arrow < -->
+                    <button onclick="prevGalleryImage(event)" class="p-1 hover:text-accent-purple text-white/90 transition-colors cursor-pointer" title="Previous Image (<)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+
+                    <!-- Right Arrow > -->
+                    <button onclick="nextGalleryImage(event)" class="p-1 hover:text-accent-purple text-white/90 transition-colors cursor-pointer" title="Next Image (>)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+
+                    <span class="w-px h-4 bg-white/20"></span>
+
+                    <!-- Download Icon -->
+                    <button onclick="triggerModalDownload(event)" class="p-1 hover:text-accent-purple text-white/90 transition-colors cursor-pointer" title="Download HD with Text">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </button>
+
+                    <span class="w-px h-4 bg-white/20"></span>
+
+                    <!-- Zoom Out -->
+                    <button onclick="zoomModalImage(event, -0.25)" class="p-1 hover:text-accent-purple text-white/90 transition-colors cursor-pointer" title="Zoom Out (-)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"></path></svg>
+                    </button>
+
+                    <!-- Zoom In -->
+                    <button onclick="zoomModalImage(event, 0.25)" class="p-1 hover:text-accent-purple text-white/90 transition-colors cursor-pointer" title="Zoom In (+)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        let tabLoadingTimeout = null;
+
+        // Image Gallery State (Declared top-level to allow dynamic AI updates)
+        let studioGallery = [
+            { src: 'assets/images/thumbnail-I%20Survived%2024%20Hours%20Alone%20-%201.png', title: 'Option A' },
+            { src: 'assets/images/thumbnail-I%20Survived%2024%20Hours%20Alone%20-%202.png', title: 'Option B' },
+            { src: 'assets/images/thumbnail-I%20Survived%2024%20Hours%20Alone%20-%203.png', title: 'Option C' }
+        ];
+        let activeGallery = studioGallery;
+        let currentGalleryIndex = 0;
+        let currentModalImgUrl = '';
+        let currentModalTitle = '';
+        let currentZoom = 1;
+        let isModalClosing = false;
+
+        // Tab switching logic with 1s simple circle loading animation
+        function switchStudioTab(tabKey) {
+            const tabs = {
+                home: { btn: 'tabBtnHome', content: 'tabContentHome' },
+                title: { btn: 'tabBtnTitle', content: 'tabContentTitle' },
+                thumbnail: { btn: 'tabBtnThumbnail', content: 'tabContentThumbnail' }
+            };
+
+            if (tabLoadingTimeout) {
+                clearTimeout(tabLoadingTimeout);
+                tabLoadingTimeout = null;
+            }
+
+            const loadingOverlay = document.getElementById('tabSwitchLoading');
+
+            Object.keys(tabs).forEach(key => {
+                const btnEl = document.getElementById(tabs[key].btn);
+                const contentEl = document.getElementById(tabs[key].content);
+
+                // Hide content while loading
+                if (contentEl) contentEl.classList.add('hidden');
+
+                if (key === tabKey) {
+                    if (btnEl) {
+                        btnEl.className = "studio-tab-btn group active w-full max-w-[88px] sm:max-w-[100px] md:max-w-none md:w-26 py-2 md:py-3 px-2 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 md:gap-1.5 transition-all duration-300 cursor-pointer relative bg-white/10 text-white border border-transparent";
+                    }
+                } else {
+                    if (btnEl) {
+                        btnEl.className = "studio-tab-btn group w-full max-w-[88px] sm:max-w-[100px] md:max-w-none md:w-26 py-2 md:py-3 px-2 rounded-xl md:rounded-2xl flex flex-col items-center justify-center gap-1 md:gap-1.5 transition-all duration-300 cursor-pointer relative text-zinc-400 hover:text-white hover:bg-white/5 border border-transparent";
+                    }
+                }
+            });
+
+            // Update URL hash without jumping
+            if (history.pushState) {
+                history.pushState(null, null, '#' + tabKey);
+            } else {
+                location.hash = '#' + tabKey;
+            }
+
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('hidden');
+
+                tabLoadingTimeout = setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                    const targetContent = document.getElementById(tabs[tabKey].content);
+                    if (targetContent) {
+                        targetContent.classList.remove('hidden');
+                        targetContent.classList.remove('animate-fade-in-up');
+                        void targetContent.offsetWidth;
+                        targetContent.classList.add('animate-fade-in-up');
+                    }
+                    tabLoadingTimeout = null;
+                }, 500);
+            } else {
+                const targetContent = document.getElementById(tabs[tabKey].content);
+                if (targetContent) {
+                    targetContent.classList.remove('hidden');
+                    targetContent.classList.remove('animate-fade-in-up');
+                    void targetContent.offsetWidth;
+                    targetContent.classList.add('animate-fade-in-up');
+                }
+            }
+        }
+
+        // Copy Title Helper
+        function copyTitleText(btn, text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <span class="text-emerald-400 font-bold">Copied!</span>
+                `;
+                btn.classList.add('border-emerald-500/50', 'bg-emerald-500/20');
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('border-emerald-500/50', 'bg-emerald-500/20');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Update Title Button State based on Input
+        function updateTitleButtonState() {
+            const titleInput = document.getElementById('appTitleInput');
+            const btn = document.getElementById('btnAnalyzeTitle');
+            if (!titleInput || !btn) return;
+
+            const hasText = titleInput.value.trim().length > 0;
+            if (hasText) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                btn.classList.add('hover:scale-[1.02]', 'cursor-pointer');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                btn.classList.remove('hover:scale-[1.02]', 'cursor-pointer');
+            }
+        }
+
+        // Real AI Title Analysis
+        async function runTitleAnalysis() {
+            const titleInput = document.getElementById('appTitleInput');
+            const channelInput = document.getElementById('appChannelUrlInput');
+            const btn = document.getElementById('btnAnalyzeTitle');
+            const loadingState = document.getElementById('titleLoadingState');
+            const loadingText = document.getElementById('titleLoadingText');
+            const resultBox = document.getElementById('titleResultBox');
+            const emptyState = document.getElementById('titleInitialEmptyState');
+            const errorBox = document.getElementById('titleErrorBox');
+            const errorText = document.getElementById('titleErrorText');
+            const cardsContainer = document.getElementById('titleCardsContainer');
+            const reasonsList = document.getElementById('titleReasonsList');
+            const scoreEl = document.getElementById('titleOppScoreVal');
+            const potentialTextEl = document.getElementById('titlePotentialText');
+            const providerBadgeEl = document.getElementById('titleProviderBadge');
+            const ytStatusEl = document.getElementById('titleYtStatus');
+
+            if (!btn || !titleInput) return;
+            const query = titleInput.value.trim();
+            if (!query) {
+                updateTitleButtonState();
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+            if (errorBox) errorBox.classList.add('hidden');
+            if (resultBox) resultBox.classList.add('hidden');
+            if (loadingState) loadingState.classList.remove('hidden');
+            if (loadingText) loadingText.innerText = 'Analyzing YouTube search trends, curiosity gap, and competitors...';
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+
+            try {
+                const response = await fetch('/api/title/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title_input: query,
+                        channel_url: channelInput ? channelInput.value.trim() : ''
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.success) {
+                    throw new Error(data.message || 'Failed to analyze title. Please try again.');
+                }
+
+                // Populate Top Score and Status
+                const oppScore = data.opportunity_score || 93;
+                if (scoreEl) {
+                    let currentVal = 40;
+                    scoreEl.innerText = currentVal;
+                    const interval = setInterval(() => {
+                        currentVal += 3;
+                        if (currentVal >= oppScore) {
+                            scoreEl.innerText = oppScore;
+                            clearInterval(interval);
+                        } else {
+                            scoreEl.innerText = currentVal;
+                        }
+                    }, 30);
+                }
+
+                if (potentialTextEl) potentialTextEl.innerText = data.potential_text || 'High Viral Potential';
+                if (providerBadgeEl) providerBadgeEl.innerText = (data.provider || 'AI Intelligence').toUpperCase();
+                if (ytStatusEl) ytStatusEl.innerText = data.source_channel ? `Style matched from: ${data.source_channel}` : 'YouTube Data API v3 & LLM Reasoning Connected';
+
+                // Populate Recommended Titles
+                if (cardsContainer && Array.isArray(data.titles)) {
+                    cardsContainer.innerHTML = data.titles.map((item, index) => {
+                        const isBest = index === 0;
+                        let rawTitle = "";
+                        if (typeof item === 'string') {
+                            rawTitle = item;
+                        } else if (typeof item === 'object' && item !== null) {
+                            rawTitle = item.title || item.text || item.name || item.title_text || item.variation || "";
+                        }
+                        if (!rawTitle) {
+                            rawTitle = `Viral Title Variation ${index + 1}`;
+                        }
+                        const score = typeof item === 'object' && item && item.score ? item.score : (95 - index * 3);
+                        const safeTitle = rawTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                        
+                        if (isBest) {
+                            return `
+                            <div class="p-3.5 sm:p-4 rounded-xl bg-gradient-to-r from-accent-purple/20 via-accent-pink/10 to-transparent border-2 border-accent-purple shadow-[0_0_20px_rgba(168,85,247,0.3)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-center gap-3.5 min-w-0">
+                                    <div class="flex flex-col items-center justify-center min-w-[48px] px-2 py-1 rounded-lg bg-accent-purple/20 border border-accent-purple/40 shrink-0">
+                                        <span class="text-base sm:text-lg font-black text-accent-purple leading-none">${score}</span>
+                                        <span class="text-[9px] font-bold text-zinc-300 uppercase tracking-wider mt-0.5">SCORE</span>
+                                    </div>
+                                    <div class="space-y-1 min-w-0">
+                                        <span class="inline-block text-[10px] bg-gradient-brand text-white font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider shadow">Best Title</span>
+                                        <p class="text-xs sm:text-sm font-extrabold text-white leading-snug break-words">${rawTitle}</p>
+                                    </div>
+                                </div>
+                                <button onclick="copyTitleText(this, '${safeTitle}')" class="self-start sm:self-center flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold text-white transition-all cursor-pointer shrink-0">
+                                    <svg class="w-3.5 h-3.5 text-zinc-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    <span>Copy Title</span>
+                                </button>
+                            </div>`;
+                        } else {
+                            return `
+                            <div class="p-3.5 sm:p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors">
+                                <div class="flex items-center gap-3.5 min-w-0">
+                                    <div class="flex flex-col items-center justify-center min-w-[48px] px-2 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                                        <span class="text-base sm:text-lg font-black text-emerald-400 leading-none">${score}</span>
+                                        <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-wider mt-0.5">SCORE</span>
+                                    </div>
+                                    <p class="text-xs sm:text-sm font-bold text-zinc-200 leading-snug break-words">${rawTitle}</p>
+                                </div>
+                                <button onclick="copyTitleText(this, '${safeTitle}')" class="self-start sm:self-center flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-bold text-white transition-all cursor-pointer shrink-0">
+                                    <svg class="w-3.5 h-3.5 text-zinc-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    <span>Copy Title</span>
+                                </button>
+                            </div>`;
+                        }
+                    }).join('');
+                }
+
+                // Populate AI Insights
+                if (reasonsList) {
+                    const defaultReasons = [
+                        "Curiosity Gap Hook: Introduces high tension without giving away the entire payoff.",
+                        "Optimized Word Placement: High-impact emotional keywords placed in the first 30 characters.",
+                        "Search & Browse Friendly: Matches high-volume viewer search queries on YouTube.",
+                        "High Expected CTR: Estimated 8.5% - 12.4% click-through rate in Browse recommendations."
+                    ];
+                    const reasons = (Array.isArray(data.reasons) && data.reasons.length > 0) ? data.reasons : defaultReasons;
+                    reasonsList.innerHTML = reasons.map(r => `
+                        <li class="flex items-start gap-2">
+                            <span class="text-accent-pink font-bold mt-0.5">•</span>
+                            <span>${r}</span>
+                        </li>
+                    `).join('');
+                }
+
+                if (loadingState) loadingState.classList.add('hidden');
+                if (resultBox) {
+                    resultBox.classList.remove('hidden');
+                    resultBox.classList.remove('animate-fade-in-up');
+                    void resultBox.offsetWidth;
+                    resultBox.classList.add('animate-fade-in-up');
+                }
+            } catch (err) {
+                console.error('Error analyzing title:', err);
+                if (loadingState) loadingState.classList.add('hidden');
+                if (errorBox) {
+                    if (errorText) errorText.innerText = err.message || 'Failed to analyze title.';
+                    errorBox.classList.remove('hidden');
+                }
+            } finally {
+                updateTitleButtonState();
+            }
+        }
+
+        // Helper to validate video URL
+        function isValidVideoUrl(str) {
+            if (!str || typeof str !== 'string') return false;
+            const trimmed = str.trim();
+            if (!trimmed) return false;
+
+            const hasUrlPrefix = /^(https?:\/\/|www\.)/i.test(trimmed);
+            const hasVideoDomain = /(youtube\.com|youtu\.be|vimeo\.com|tiktok\.com|facebook\.com|fb\.watch|instagram\.com|twitch\.tv|drive\.google\.com)/i.test(trimmed);
+            const hasVideoExt = /\.(mp4|mov|webm|mkv|avi|flv|wmv|m4v)(\?.*)?$/i.test(trimmed);
+            const genericUrlPattern = /^(https?:\/\/)?([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/.*)?$/i;
+
+            if (hasVideoDomain || hasVideoExt) return true;
+            if (hasUrlPrefix && genericUrlPattern.test(trimmed)) return true;
+
+            return false;
+        }
+
+        // Handle Direct Video Upload
+        function handleVideoFileSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            const badge = document.getElementById('videoFileBadge');
+            const nameSpan = document.getElementById('videoFileName');
+
+            if (file) {
+                // Strict check: must be a video file type or video extension
+                const isVideo = (file.type && file.type.startsWith('video/')) || /\.(mp4|mov|webm|mkv|avi|flv|wmv|m4v)$/i.test(file.name);
+                
+                if (!isVideo) {
+                    alert('Please select a valid video file (MP4, MOV, WEBM, etc.).');
+                    event.target.value = ''; // clear input
+                    if (badge) badge.classList.add('hidden');
+                    updateThumbnailButtonState();
+                    return;
+                }
+
+                if (badge && nameSpan) {
+                    nameSpan.textContent = `Video selected: ${file.name}`;
+                    badge.classList.remove('hidden');
+                }
+            } else {
+                if (badge) badge.classList.add('hidden');
+            }
+            updateThumbnailButtonState();
+        }
+
+        // Handle Reference Image Selection
+        function handleRefImageSelect(event) {
+            const file = event.target.files && event.target.files[0];
+            const badge = document.getElementById('refImageBadge');
+            const nameSpan = document.getElementById('refImageName');
+
+            if (file) {
+                if (!file.type || !file.type.startsWith('image/')) {
+                    alert('Please select a valid image file (PNG, JPG, WEBP, etc.).');
+                    event.target.value = '';
+                    if (badge) badge.classList.add('hidden');
+                    return;
+                }
+                if (badge && nameSpan) {
+                    nameSpan.textContent = file.name;
+                    badge.classList.remove('hidden');
+                }
+            } else {
+                if (badge) badge.classList.add('hidden');
+            }
+        }
+
+        function clearRefImage() {
+            const input = document.getElementById('refImageInput');
+            const badge = document.getElementById('refImageBadge');
+            if (input) input.value = '';
+            if (badge) badge.classList.add('hidden');
+        }
+
+        // Aspect Ratio Dropdown Animation Helpers
+        function openAspectRatioDropdown() {
+            const dropdown = document.getElementById('aspectRatioDropdown');
+            if (!dropdown) return;
+            dropdown.classList.remove('hidden');
+            void dropdown.offsetWidth; // trigger reflow
+            dropdown.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+            dropdown.classList.add('opacity-100', 'scale-100', 'pointer-events-auto');
+        }
+
+        function closeAspectRatioDropdown() {
+            const dropdown = document.getElementById('aspectRatioDropdown');
+            if (!dropdown || dropdown.classList.contains('hidden')) return;
+            dropdown.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
+            dropdown.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            setTimeout(() => {
+                if (dropdown.classList.contains('opacity-0')) {
+                    dropdown.classList.add('hidden');
+                }
+            }, 150);
+        }
+
+        // Toggle Aspect Ratio Dropdown
+        function toggleAspectRatioDropdown(event) {
+            if (event) event.stopPropagation();
+            const dropdown = document.getElementById('aspectRatioDropdown');
+            if (!dropdown) return;
+            if (dropdown.classList.contains('hidden') || dropdown.classList.contains('opacity-0')) {
+                openAspectRatioDropdown();
+            } else {
+                closeAspectRatioDropdown();
+            }
+        }
+
+        // Select Aspect Ratio
+        let currentAspectRatio = '16:9';
+        function selectAspectRatio(ratio, shape) {
+            currentAspectRatio = ratio;
+            const textSpan = document.getElementById('aspectRatioText');
+            const iconSpan = document.getElementById('aspectRatioIcon');
+
+            if (textSpan) textSpan.textContent = ratio;
+            if (iconSpan) {
+                if (shape === 'vertical') {
+                    iconSpan.className = 'inline-block w-2.5 h-4 border border-current rounded-xs';
+                } else if (shape === 'square') {
+                    iconSpan.className = 'inline-block w-3 h-3 border border-current rounded-xs';
+                } else {
+                    iconSpan.className = 'inline-block w-4 h-2.5 border border-current rounded-xs';
+                }
+            }
+
+            // Update active highlights in dropdown
+            ['opt-9-16', 'opt-16-9', 'opt-1-1'].forEach(id => {
+                const opt = document.getElementById(id);
+                if (opt) {
+                    opt.classList.remove('bg-white/15', 'text-white', 'font-bold');
+                    opt.classList.add('hover:bg-white/10', 'text-zinc-300');
+                }
+            });
+
+            const activeOptId = ratio === '9:16' ? 'opt-9-16' : (ratio === '1:1' ? 'opt-1-1' : 'opt-16-9');
+            const activeOpt = document.getElementById(activeOptId);
+            if (activeOpt) {
+                activeOpt.classList.add('bg-white/15', 'text-white', 'font-bold');
+                activeOpt.classList.remove('hover:bg-white/10', 'text-zinc-300');
+            }
+
+            closeAspectRatioDropdown();
+        }
+
+        // Close aspect ratio dropdown when clicking outside
+        window.addEventListener('click', (e) => {
+            const dropdown = document.getElementById('aspectRatioDropdown');
+            const btn = document.getElementById('aspectRatioBtn');
+            if (dropdown && !dropdown.classList.contains('hidden') && !dropdown.classList.contains('opacity-0')) {
+                if (btn && !btn.contains(e.target) && !dropdown.contains(e.target)) {
+                    closeAspectRatioDropdown();
+                }
+            }
+        });
+
+        // Debounced Video URL Info Fetcher
+        let videoLinkFetchTimeout = null;
+        async function handleVideoLinkInput(val) {
+            updateThumbnailButtonState();
+            const rawVal = (val || '').trim();
+            const infoCard = document.getElementById('ytVideoInfoCard');
+            const thumbImg = document.getElementById('ytVideoThumbImg');
+            const titleText = document.getElementById('ytVideoTitleText');
+            const channelText = document.getElementById('ytVideoChannelText');
+            const appTitleInput = document.getElementById('appTitleInput');
+
+            if (!isValidVideoUrl(rawVal)) {
+                if (infoCard) infoCard.classList.add('hidden');
+                return;
+            }
+
+            clearTimeout(videoLinkFetchTimeout);
+            videoLinkFetchTimeout = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/api/video/info?url=${encodeURIComponent(rawVal)}`);
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (data.success) {
+                        if (infoCard) infoCard.classList.remove('hidden');
+                        if (thumbImg) thumbImg.src = data.best_frame || data.local_frame || '';
+                        if (titleText) titleText.innerText = data.title;
+                        if (channelText) channelText.innerText = data.author ? `By ${data.author}` : 'YouTube Video';
+                        if (appTitleInput && (!appTitleInput.value || appTitleInput.value === 'Viral YouTube Video')) {
+                            appTitleInput.value = data.title;
+                        }
+                        updateThumbnailButtonState();
+                    }
+                } catch (e) {
+                    console.warn('Could not fetch video info:', e);
+                }
+            }, 400);
+        }
+
+        // Live update for thumbnail card hook text
+        function updateCardHookText(id, newText) {
+            const el = document.getElementById(`cardHookText_${id}`);
+            if (el) {
+                el.innerText = (newText || '').toUpperCase();
+            }
+        }
+
+        // Update Thumbnail Button State based on Video Input or File
+        function updateThumbnailButtonState() {
+            const videoInput = document.getElementById('videoLinkInput');
+            const videoFile = document.getElementById('videoFileInput');
+            const refImage = document.getElementById('refImageInput');
+            const appTitleInput = document.getElementById('appTitleInput');
+            const btn = document.getElementById('btnGenerateThumbnail');
+            if (!btn) return;
+
+            const rawVal = videoInput ? videoInput.value.trim() : '';
+            const hasValidLink = isValidVideoUrl(rawVal);
+            const hasValidFile = videoFile && videoFile.files && videoFile.files[0] && (
+                (videoFile.files[0].type && videoFile.files[0].type.startsWith('video/')) ||
+                /\.(mp4|mov|webm|mkv|avi|flv|wmv|m4v)$/i.test(videoFile.files[0].name)
+            );
+            const hasRefImage = refImage && refImage.files && refImage.files[0];
+            const hasTitle = appTitleInput && appTitleInput.value.trim().length > 0;
+
+            if (hasValidLink || hasValidFile || hasRefImage || hasTitle) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                btn.classList.add('hover:scale-[1.02]', 'cursor-pointer');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                btn.classList.remove('hover:scale-[1.02]', 'cursor-pointer');
+            }
+        }
+
+        // Real AI Thumbnail Generation
+        async function runThumbnailGeneration() {
+            const videoInput = document.getElementById('videoLinkInput');
+            const videoFile = document.getElementById('videoFileInput');
+            const refImageInput = document.getElementById('refImageInput');
+            const appTitleInput = document.getElementById('appTitleInput');
+            const btn = document.getElementById('btnGenerateThumbnail');
+            const loadingState = document.getElementById('thumbLoadingState');
+            const loadingText = document.getElementById('thumbLoadingText');
+            const emptyState = document.getElementById('thumbInitialEmptyState');
+            const resultsGrid = document.getElementById('thumbResultsGrid');
+            const metaBar = document.getElementById('thumbMetaBar');
+            const errorBox = document.getElementById('thumbErrorBox');
+            const errorText = document.getElementById('thumbErrorText');
+            const engineBadge = document.getElementById('thumbEngineBadge');
+            const modelBadge = document.getElementById('thumbModelBadge');
+            const ratioBadge = document.getElementById('thumbRatioBadge');
+
+            if (!btn || !loadingState || !resultsGrid) return;
+
+            const videoUrl = videoInput ? videoInput.value.trim() : '';
+            const hasVideoFile = videoFile && videoFile.files && videoFile.files[0];
+            const hasRefImage = refImageInput && refImageInput.files && refImageInput.files[0];
+            const titleVal = (appTitleInput && appTitleInput.value.trim()) || (hasVideoFile ? videoFile.files[0].name.replace(/\.[^/.]+$/, "") : "Viral YouTube Video");
+
+            if (!videoUrl && !hasVideoFile && !hasRefImage && !titleVal) {
+                updateThumbnailButtonState();
+                return;
+            }
+
+            if (emptyState) emptyState.classList.add('hidden');
+            if (errorBox) errorBox.classList.add('hidden');
+            resultsGrid.classList.add('hidden');
+            if (metaBar) metaBar.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            if (loadingText) loadingText.innerText = 'Extracting Video Frames & Generating 3 AI Thumbnails with Viral Typography...';
+
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+
+            // Read reference image if uploaded
+            let refDataUrl = null;
+            if (hasRefImage) {
+                try {
+                    refDataUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(refImageInput.files[0]);
+                    });
+                } catch (e) {
+                    console.warn('Failed to read ref image:', e);
+                }
+            }
+
+            try {
+                const response = await fetch('/api/thumbnail/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        video_url: videoUrl,
+                        title: titleVal,
+                        aspect_ratio: currentAspectRatio,
+                        reference_image_url: refDataUrl
+                    })
+                });
+
+                const contentType = response.headers.get('content-type') || '';
+                let data;
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    throw new Error(response.status === 504 ? 'Request timed out on the server. Please try again.' : `Server returned non-JSON response (${response.status}).`);
+                }
+
+                if (!response.ok || !data.success || !Array.isArray(data.thumbnails)) {
+                    throw new Error(data?.message || 'Failed to generate thumbnail variations.');
+                }
+
+                // Update Studio Gallery for modal preview
+                studioGallery.length = 0;
+                data.thumbnails.forEach((t) => {
+                    studioGallery.push({
+                        src: t.image_url,
+                        title: `Option ${t.id} (${t.concept || 'AI Variation'})`
+                    });
+                });
+
+                // Update Meta Info Bar
+                if (metaBar) {
+                    metaBar.classList.remove('hidden');
+                    if (engineBadge) {
+                        if (data.groq_tier) {
+                            engineBadge.innerText = `GROQ AI (${data.groq_tier.toUpperCase()})`;
+                        } else {
+                            engineBadge.innerText = (data.provider || 'AI GENERATION').toUpperCase();
+                        }
+                    }
+                    if (modelBadge) {
+                        modelBadge.innerText = data.groq_model || data.model || 'qwen/qwen3.8-27b';
+                    }
+                    if (ratioBadge) ratioBadge.innerText = data.aspect_ratio || currentAspectRatio;
+                }
+
+                // Render 3 dynamic thumbnail cards with true YouTube Viral Typography & Editor
+                resultsGrid.innerHTML = data.thumbnails.map((t, idx) => {
+                    const safeConcept = (t.concept || '').replace(/'/g, "\\'");
+                    const safeUrl = t.image_url.replace(/'/g, "\\'");
+                    const safeHook = (t.hook_text || data.hook_text || 'VIRAL MOMEN!').replace(/'/g, "\\'");
+                    const safeColor = t.accent_color || (idx === 0 ? '#FFE600' : (idx === 1 ? '#00F0FF' : '#FF2E63'));
+                    const safeBadge = (t.badge || t.concept || 'High CTR').replace(/'/g, "\\'");
+                    const filename = `CreatorIQ_Viral_Thumbnail_${t.id}.png`;
+                    const aspectClass = currentAspectRatio === '9:16' ? 'aspect-[9/16]' : (currentAspectRatio === '1:1' ? 'aspect-square' : 'aspect-video');
+                    const fallbackImg = data.video_source_frame || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1280&auto=format&fit=crop&q=80';
+
+                    return `
+                    <div class="flex flex-col gap-2">
+                        <div onclick="openImageModal(${idx}, 'Option ${t.id}', 'studio')" class="relative rounded-2xl overflow-hidden ${aspectClass} border border-white/10 hover:border-accent-purple/60 shadow-2xl yt-thumb group hover:-translate-y-1 transition-all cursor-pointer bg-black select-none">
+                            <img src="${t.image_url}" alt="Option ${t.id}" onerror="this.onerror=null; this.src='${fallbackImg}';" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            
+                            <!-- Vignette & Gradient for Text Contrast -->
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/25 to-transparent pointer-events-none z-5"></div>
+
+                            <!-- Top Badges -->
+                            <span class="absolute top-2.5 left-2.5 z-10 bg-emerald-500/95 backdrop-blur-sm text-white text-[10px] font-extrabold px-2 py-0.5 rounded-md border border-emerald-400/40 shadow-lg flex items-center gap-1.5 pointer-events-none tracking-wide">
+                                <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                                <span>CTR ${t.ctr_score || 94}</span>
+                            </span>
+                            <span class="absolute top-2.5 right-2.5 z-10 bg-black/75 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-0.5 rounded-md border border-white/15 shadow pointer-events-none group-hover:opacity-0 transition-opacity tracking-wide">
+                                ${t.badge || t.concept}
+                            </span>
+
+                            <!-- Modern YouTube Creator Viral Hook Typography Overlay -->
+                            <div class="absolute bottom-3 left-3 right-3 z-10 pointer-events-none flex flex-col items-start select-none">
+                                <div class="inline-flex items-center gap-1.5 mb-1 px-2 py-0.5 rounded-md bg-black/80 backdrop-blur-md border border-white/20 shadow-md">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                                    <span class="text-[9px] font-extrabold uppercase tracking-wider text-white">
+                                        ${safeBadge}
+                                    </span>
+                                </div>
+                                <div class="relative">
+                                    <h3 id="cardHookText_${t.id}" class="font-black text-left uppercase leading-none tracking-tight transform -rotate-1 origin-bottom-left transition-all text-xl sm:text-2xl drop-shadow-[0_8px_20px_rgba(0,0,0,1)] select-none px-2.5 py-1 rounded-lg bg-black/70 backdrop-blur-xs border border-white/10" 
+                                        style="color: ${safeColor}; text-shadow: 0 4px 14px rgba(0,0,0,0.95); font-family: 'Outfit', 'Plus Jakarta Sans', sans-serif;">
+                                        ${safeHook}
+                                    </h3>
+                                </div>
+                            </div>
+
+                            <!-- Hover Overlay -->
+                            <div class="absolute inset-0 bg-black/60 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center p-4 z-20">
+                                <!-- Top Right Combined Download HD Button -->
+                                <div class="absolute top-3 right-3 z-30">
+                                    <button onclick="downloadHDImage(event, '${safeUrl}', '${filename}', document.getElementById('cardHookText_${t.id}').innerText, '${safeColor}', '${safeBadge}')" class="px-3 py-1.5 rounded-lg bg-accent-purple hover:bg-accent-purple/80 text-white text-xs font-bold border border-accent-purple/40 shadow-lg transition-all flex items-center gap-1.5 cursor-pointer" title="Download HD Thumbnail">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                        <span class="text-white">Download HD</span>
+                                    </button>
+                                </div>
+
+                                <!-- Center Action: Preview -->
+                                <div class="px-4 py-2 rounded-full bg-black/70 hover:bg-black/90 text-white font-bold text-xs sm:text-sm flex items-center gap-2 border border-white/20 shadow-2xl hover:scale-105 transition-all">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    <span class="text-white">Preview</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Hook Customizer Bar -->
+                        <div class="px-2.5 py-2 bg-white/[0.04] border border-white/10 rounded-xl flex items-center gap-2 shadow-sm">
+                            <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider shrink-0">Hook Text:</span>
+                            <input type="text" value="${safeHook.replace(/"/g, '&quot;')}" oninput="updateCardHookText('${t.id}', this.value)" placeholder="Edit text on thumbnail..." class="w-full bg-black/40 border border-white/10 rounded-lg px-2.5 py-1 text-xs text-white font-bold outline-none focus:border-accent-purple transition-all">
+                            <button onclick="downloadHDImage(event, '${safeUrl}', '${filename}', document.getElementById('cardHookText_${t.id}').innerText, '${safeColor}', '${safeBadge}')" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-bold shrink-0 transition-all cursor-pointer flex items-center gap-1" title="Download HD">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                <span>HD</span>
+                            </button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+                // Update studioGallery with the newly generated AI thumbnails and typography hooks
+                studioGallery = data.thumbnails.map((t, idx) => ({
+                    src: t.image_url,
+                    title: `Option ${t.id}`,
+                    id: t.id,
+                    hookText: (t.hook_text || data.hook_text || '').toUpperCase(),
+                    color: t.accent_color || (idx === 0 ? '#FFE600' : (idx === 1 ? '#00F0FF' : '#FF3366')),
+                    badge: (t.badge || t.concept || 'VIRAL').toUpperCase(),
+                    ctr: t.ctr_score || 94
+                }));
+                activeGallery = studioGallery;
+
+                loadingState.classList.add('hidden');
+                resultsGrid.classList.remove('hidden');
+                resultsGrid.classList.remove('animate-fade-in-up');
+                void resultsGrid.offsetWidth;
+                resultsGrid.classList.add('animate-fade-in-up');
+            } catch (err) {
+                console.error('Error generating thumbnail:', err);
+                loadingState.classList.add('hidden');
+                if (errorBox) {
+                    if (errorText) errorText.innerText = err.message || 'Failed to generate thumbnail.';
+                    errorBox.classList.remove('hidden');
+                }
+            } finally {
+                updateThumbnailButtonState();
+            }
+        }
+
+        // Thumbnail selection
+        function selectStudioThumb(btn) {
+            const allSelectBtns = document.querySelectorAll('#thumbResultsGrid button');
+            allSelectBtns.forEach(b => {
+                if (b.innerText === 'Selected' || b.innerText === 'Select') {
+                    b.innerText = 'Select';
+                    b.className = "p-1.5 rounded bg-white/10 hover:bg-accent-purple text-white text-[10px] font-bold transition-all cursor-pointer";
+                }
+            });
+
+            btn.innerText = 'Selected';
+            btn.className = "p-1.5 rounded bg-emerald-500 text-white text-[10px] font-bold transition-all cursor-pointer shadow-[0_0_10px_rgba(16,185,129,0.5)]";
+        }
+
+        // High-Definition Canvas-composed Thumbnail Downloader
+        async function downloadHDImage(e, url, filename, hookText, accentColor, badgeText) {
+            if (e) e.stopPropagation();
+            try {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                img.src = url;
+                await new Promise((resolve) => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+
+                let targetW = 1280;
+                let targetH = 720;
+                if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+                    const natAspect = img.naturalWidth / img.naturalHeight;
+                    if (natAspect < 0.75) {
+                        targetW = img.naturalWidth >= 720 ? img.naturalWidth : 720;
+                        targetH = img.naturalHeight >= 1280 ? img.naturalHeight : 1280;
+                    } else if (natAspect >= 0.85 && natAspect <= 1.15) {
+                        const side = Math.max(img.naturalWidth, img.naturalHeight, 1080);
+                        targetW = side;
+                        targetH = side;
+                    } else {
+                        targetW = img.naturalWidth >= 1280 ? img.naturalWidth : 1280;
+                        targetH = img.naturalHeight >= 720 ? img.naturalHeight : 720;
+                    }
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = targetW;
+                canvas.height = targetH;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Canvas context not available');
+
+                if (img.naturalWidth > 0) {
+                    const scale = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+                    const x = (canvas.width - img.naturalWidth * scale) / 2;
+                    const y = (canvas.height - img.naturalHeight * scale) / 2;
+                    ctx.drawImage(img, x, y, img.naturalWidth * scale, img.naturalHeight * scale);
+                } else {
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                // Dark vignette gradient for bottom text contrast
+                const grad = ctx.createLinearGradient(0, canvas.height * 0.4, 0, canvas.height);
+                grad.addColorStop(0, 'rgba(0,0,0,0)');
+                grad.addColorStop(0.5, 'rgba(0,0,0,0.5)');
+                grad.addColorStop(1, 'rgba(0,0,0,0.92)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Draw Modern Badge Pill
+                if (badgeText && badgeText.trim()) {
+                    ctx.save();
+                    ctx.translate(60, canvas.height - 150);
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+                    ctx.lineWidth = 2;
+                    if (ctx.roundRect) {
+                        ctx.beginPath();
+                        ctx.roundRect(0, 0, 200, 42, 8);
+                        ctx.fill();
+                        ctx.stroke();
+                    } else {
+                        ctx.fillRect(0, 0, 200, 42);
+                    }
+                    // Red indicator dot
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(22, 21, 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = '900 18px "Plus Jakarta Sans", Outfit, Arial, sans-serif';
+                    ctx.fillText(badgeText.toUpperCase(), 40, 27);
+                    ctx.restore();
+                }
+
+                // Draw Bold Modern YouTube Hook Typography
+                if (hookText && hookText.trim()) {
+                    ctx.save();
+                    ctx.translate(60, canvas.height - 60);
+                    ctx.rotate(-0.02);
+
+                    // Measure text for modern frosted backdrop
+                    ctx.font = '900 76px "Plus Jakarta Sans", Outfit, Impact, Arial, sans-serif';
+                    const textMetrics = ctx.measureText(hookText.toUpperCase());
+                    const textWidth = textMetrics.width;
+
+                    // Modern frosted backdrop for 100% legibility
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.lineWidth = 2;
+                    if (ctx.roundRect) {
+                        ctx.beginPath();
+                        ctx.roundRect(-16, -76, textWidth + 36, 96, 12);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+
+                    // Multi-layer volumetric text shadow
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)';
+                    ctx.shadowBlur = 24;
+                    ctx.shadowOffsetY = 6;
+
+                    // Inner Color Fill
+                    ctx.fillStyle = accentColor || '#FFE600';
+                    ctx.fillText(hookText.toUpperCase(), 0, 0);
+                    ctx.restore();
+                }
+
+                // Export to PNG blob
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        const link = document.createElement('a');
+                        link.href = url;
+                        link.download = filename || 'CreatorIQ_Thumbnail.png';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        return;
+                    }
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = filename || 'CreatorIQ_Thumbnail.png';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+                }, 'image/png');
+            } catch (err) {
+                console.warn('Canvas export fallback:', err);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename || 'CreatorIQ_Thumbnail.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Image Modal Lightbox Operations
+        function openImageModal(imgSrc, title, galleryGroup = 'studio') {
+            const modal = document.getElementById('imagePreviewModal');
+            const contentBox = document.getElementById('modalContentBox');
+            if (!modal || !contentBox) return;
+
+            activeGallery = studioGallery;
+
+            let foundIdx = -1;
+            if (typeof imgSrc === 'number') {
+                foundIdx = imgSrc;
+            } else if (imgSrc) {
+                foundIdx = activeGallery.findIndex(item => item.src === imgSrc || decodeURIComponent(item.src) === decodeURIComponent(imgSrc));
+            }
+
+            if (foundIdx !== -1) {
+                currentGalleryIndex = foundIdx;
+            } else {
+                currentGalleryIndex = 0;
+            }
+
+            currentZoom = 1;
+            updateModalView();
+
+            isModalClosing = false;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+
+            // Smooth Zoom-In and Fade-In Animation
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    modal.classList.remove('opacity-0', 'pointer-events-none');
+                    modal.classList.add('opacity-100');
+                    contentBox.classList.remove('scale-75', 'opacity-0');
+                    contentBox.classList.add('scale-100', 'opacity-100');
+                });
+            });
+        }
+
+        function updateModalView() {
+            const modalImg = document.getElementById('modalPreviewImg');
+            const modalTitle = document.getElementById('modalImageTitle');
+            const modalCounter = document.getElementById('modalCounter');
+            const modalHook = document.getElementById('modalHookText');
+            const modalBadge = document.getElementById('modalBadge');
+            const modalSubBadge = document.getElementById('modalSubBadge');
+            const modalCTR = document.getElementById('modalCTR');
+
+            if (activeGallery.length > 0 && currentGalleryIndex >= 0 && currentGalleryIndex < activeGallery.length) {
+                const item = activeGallery[currentGalleryIndex];
+                currentModalImgUrl = item.src;
+                currentModalTitle = item.title;
+
+                if (modalImg) {
+                    modalImg.src = item.src;
+                    modalImg.style.transform = `scale(${currentZoom})`;
+                }
+                if (modalTitle) modalTitle.innerText = item.title;
+                if (modalCounter) modalCounter.innerText = `${currentGalleryIndex + 1}/${activeGallery.length}`;
+
+                // Update Viral Typography Hook in Modal
+                if (modalHook) {
+                    modalHook.innerText = item.hookText || 'VIRAL HOOK!';
+                    modalHook.style.color = item.color || '#FFE600';
+                }
+                if (modalBadge) modalBadge.innerText = item.badge || 'VIRAL';
+                if (modalSubBadge) modalSubBadge.innerText = item.badge || 'VIRAL';
+                if (modalCTR) modalCTR.innerText = `${item.ctr || 94}% CTR`;
+            }
+        }
+
+        function prevGalleryImage(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            if (activeGallery.length === 0) return;
+            currentGalleryIndex = (currentGalleryIndex - 1 + activeGallery.length) % activeGallery.length;
+            currentZoom = 1;
+            updateModalView();
+        }
+
+        function nextGalleryImage(e) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            if (activeGallery.length === 0) return;
+            currentGalleryIndex = (currentGalleryIndex + 1) % activeGallery.length;
+            currentZoom = 1;
+            updateModalView();
+        }
+
+        function zoomModalImage(e, delta) {
+            if (e) {
+                if (typeof e.preventDefault === 'function') e.preventDefault();
+                if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            }
+            const modalImg = document.getElementById('modalPreviewImg');
+            if (!modalImg) return;
+            currentZoom = Math.min(Math.max(currentZoom + delta, 0.5), 3.0);
+            modalImg.style.transform = `scale(${currentZoom})`;
+        }
+
+        function triggerModalDownload(e) {
+            if (currentModalImgUrl) {
+                const item = activeGallery[currentGalleryIndex] || {};
+                const fname = (currentModalTitle ? currentModalTitle.replace(/[^a-zA-Z0-9]/g, '_') : 'Thumbnail') + '_HD.png';
+                downloadHDImage(e, currentModalImgUrl, fname, item.hookText, item.color, item.badge);
+            }
+        }
+
+        function closeImageModal(e) {
+            if (e && e.target && e.target.closest('#modalContentBox')) {
+                return; // don't close if clicking inside modal content
+            }
+            if (isModalClosing) return;
+
+            const modal = document.getElementById('imagePreviewModal');
+            const contentBox = document.getElementById('modalContentBox');
+            if (!modal || !contentBox) return;
+
+            isModalClosing = true;
+
+            // Smooth Zoom-Out and Fade-Out Animation
+            modal.classList.remove('opacity-100');
+            modal.classList.add('opacity-0', 'pointer-events-none');
+            contentBox.classList.remove('scale-100', 'opacity-100');
+            contentBox.classList.add('scale-75', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = 'auto';
+                currentZoom = 1;
+                const modalImg = document.getElementById('modalPreviewImg');
+                if (modalImg) modalImg.style.transform = 'scale(1)';
+                isModalClosing = false;
+            }, 300);
+        }
+
+        document.addEventListener('keydown', function(e) {
+            const modal = document.getElementById('imagePreviewModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                if (e.key === 'Escape') {
+                    closeImageModal();
+                } else if (e.key === 'ArrowLeft') {
+                    prevGalleryImage(e);
+                } else if (e.key === 'ArrowRight') {
+                    nextGalleryImage(e);
+                }
+            }
+        });
+
+        // Rotating Placeholder for Video Title Input
+        const titlePlaceholders = [
+            "I tried [challenge] for 30 days",
+            "Honest review of the new iPhone",
+            "How I grew to 100k subscribers",
+            "Beginner's guide to investing",
+            "Day in the life of a software engineer",
+            "10 AI tools that will replace your job",
+            "Why most creators fail on YouTube",
+            "I built a $10,000 setup in 24 hours"
+        ];
+        let currentPlaceholderIdx = 0;
+        const titleInputEl = document.getElementById('appTitleInput');
+        if (titleInputEl) {
+            titleInputEl.addEventListener('input', updateTitleButtonState);
+            titleInputEl.addEventListener('keyup', updateTitleButtonState);
+            titleInputEl.addEventListener('change', updateTitleButtonState);
+            updateTitleButtonState();
+
+            setInterval(() => {
+                currentPlaceholderIdx = (currentPlaceholderIdx + 1) % titlePlaceholders.length;
+                titleInputEl.placeholder = titlePlaceholders[currentPlaceholderIdx];
+            }, 2800);
+        }
+
+        // Initialize based on URL hash (e.g. studio.html#title or studio.html#thumbnail)
+        window.addEventListener('DOMContentLoaded', () => {
+            updateTitleButtonState();
+            updateThumbnailButtonState();
+            const hash = window.location.hash.replace('#', '');
+            if (hash && (hash === 'home' || hash === 'title' || hash === 'thumbnail')) {
+                switchStudioTab(hash);
+            } else {
+                switchStudioTab('home');
+            }
+
+            // 2-Second Loading Screen Simulation
+            const progressBar = document.getElementById('loadingProgressBar');
+            const statusText = document.getElementById('loadingStatusText');
+            const loadingScreen = document.getElementById('studioLoadingScreen');
+
+            if (progressBar && loadingScreen) {
+                setTimeout(() => {
+                    progressBar.style.width = '45%';
+                    if (statusText) statusText.innerText = 'Connecting AI Engines & Trend Models...';
+                }, 350);
+
+                setTimeout(() => {
+                    progressBar.style.width = '85%';
+                    if (statusText) statusText.innerText = 'Preparing Studio Dashboard...';
+                }, 1100);
+
+                setTimeout(() => {
+                    progressBar.style.width = '100%';
+                    if (statusText) statusText.innerText = 'Studio Ready!';
+                }, 1750);
+
+                setTimeout(() => {
+                    loadingScreen.classList.add('opacity-0', 'pointer-events-none');
+                    const activePane = document.querySelector('.studio-tab-pane:not(.hidden)');
+                    if (activePane) {
+                        activePane.classList.remove('animate-fade-in-up');
+                        void activePane.offsetWidth;
+                        activePane.classList.add('animate-fade-in-up');
+                    }
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 700);
+                }, 2000);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+{
+  "retentionHours": 2,
+  "intervalMinutes": 10,
+  "autoCleanupEnabled": true
+}

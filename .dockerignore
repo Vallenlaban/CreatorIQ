@@ -1,0 +1,8 @@
+node_modules
+dist
+uploads/outputs
+uploads/repurposer
+uploads/thumbnail_pipeline
+.git
+.env
+.env.local
