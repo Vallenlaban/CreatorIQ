@@ -2,7 +2,7 @@
 # Ensures FFmpeg is installed for video slicing, audio extraction, and 9:16 vertical rendering
 
 [phases.setup]
-nixPkgs = ["nodejs-20_x", "ffmpeg"]
+nixPkgs = ["nodejs-20_x", "ffmpeg", "fontconfig", "liberation_ttf", "dejavu_fonts"]
 
 [phases.build]
 cmds = ["npm run build"]

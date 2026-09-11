@@ -77,12 +77,29 @@ export interface RepurposerJob {
 const UPLOADS_DIR = path.join(process.cwd(), "uploads");
 const REPURPOSER_DIR = path.join(UPLOADS_DIR, "repurposer");
 export const JOBS_DIR = path.join(REPURPOSER_DIR, "jobs");
+export const BUNDLED_FONTS_DIR = path.join(process.cwd(), "server", "assets", "fonts");
 
-[UPLOADS_DIR, REPURPOSER_DIR, JOBS_DIR].forEach((dir) => {
+[UPLOADS_DIR, REPURPOSER_DIR, JOBS_DIR, BUNDLED_FONTS_DIR].forEach((dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 });
+
+// Helper to determine the best fonts directory for FFmpeg ASS subtitles
+export function getFontsDir(): string | null {
+  if (fs.existsSync(BUNDLED_FONTS_DIR) && fs.readdirSync(BUNDLED_FONTS_DIR).some(f => f.endsWith(".ttf"))) {
+    return BUNDLED_FONTS_DIR;
+  }
+  const systemLiberation = "/usr/share/fonts/truetype/liberation";
+  if (fs.existsSync(systemLiberation)) {
+    return systemLiberation;
+  }
+  const systemFonts = "/usr/share/fonts";
+  if (fs.existsSync(systemFonts)) {
+    return systemFonts;
+  }
+  return null;
+}
 
 // In-memory job repository with persistence fallback
 const jobsMap = new Map<string, RepurposerJob>();
@@ -1120,25 +1137,29 @@ export async function getActiveGroqModels(apiKey: string): Promise<string[]> {
 }
 
 // Helper to build 9:16 FFmpeg video filter based on chosen adaptation mode
-export function buildFFmpegFilter(layoutMode: string, assPath: string): string {
+export function buildFFmpegFilter(layoutMode: string, assPath: string, filterType: "ass" | "subtitles" = "ass"): string {
   // Use basename when cwd is set to jobDir to prevent Windows colon/backslash escaping issues
   const cleanAss = path.basename(assPath).replace(/'/g, "'\\''");
+  const fontsDir = getFontsDir();
+  const fontArg = fontsDir ? `:fontsdir='${fontsDir.replace(/'/g, "'\\''")}'` : "";
+  const subFilter = `${filterType}='${cleanAss}'${fontArg}`;
+
   if (layoutMode === "crop_fill" || layoutMode === "crop_zoom_fill") {
     // 100% Full Screen 9:16 Crop Zoom Fill (No blurred bars)
-    return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,ass='${cleanAss}'[outv]`;
+    return `[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,${subFilter}[outv]`;
   }
   if (layoutMode === "split_stacked") {
     // Dual stacked top & bottom split
     return `[0:v]split=2[in_top][in_bot];` +
       `[in_top]scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960,setsar=1[top];` +
       `[in_bot]scale=1080:960:force_original_aspect_ratio=increase,crop=1080:960,setsar=1[bot];` +
-      `[top][bot]vstack=inputs=2,setsar=1,ass='${cleanAss}'[outv]`;
+      `[top][bot]vstack=inputs=2,setsar=1,${subFilter}[outv]`;
   }
   // blurred_backdrop (Optimized downscale-blur-upscale: 6.5x faster, avoids OOM on Railway 512MB RAM, -2 ensures even height)
   return `[0:v]split=2[in_bg][in_fg];` +
     `[in_bg]scale=270:480:force_original_aspect_ratio=increase,crop=270:480,boxblur=8:2,scale=1080:1920[bg];` +
     `[in_fg]scale=1080:-2[fg];` +
-    `[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,ass='${cleanAss}'[outv]`;
+    `[bg][fg]overlay=(W-w)/2:(H-h)/2,setsar=1,${subFilter}[outv]`;
 }
 
 // Clean 9:16 FFmpeg filter without ASS subtitle dependency (for environments where libass is unavailable)
@@ -1193,9 +1214,9 @@ export async function renderSingleClipSafe(
 
   const assBaseName = path.basename(assPath);
 
-  // Tier 1: With ASS filter using cwd: jobDir
+  // Tier 1: With ASS filter + fontsdir using cwd: jobDir
   try {
-    const filterComplex = buildFFmpegFilter(layoutMode, assBaseName);
+    const filterComplex = buildFFmpegFilter(layoutMode, assBaseName, "ass");
     const ffArgs = [
       "-y",
       "-ss", clip.start.toFixed(2),
@@ -1229,6 +1250,44 @@ export async function renderSingleClipSafe(
     }
   } catch (err) {
     console.warn(`[Repurposer] Tier 1 ASS render failed for ${clip.id}:`, err);
+  }
+
+  // Tier 1b: Fallback to subtitles filter with fontsdir (robust alternative libass filter)
+  try {
+    const subFilterComplex = buildFFmpegFilter(layoutMode, assBaseName, "subtitles");
+    const ffArgsSub = [
+      "-y",
+      "-ss", clip.start.toFixed(2),
+      "-t", cutDuration.toFixed(2),
+      "-i", inputVideo,
+      "-filter_complex", subFilterComplex,
+      "-map", "[outv]",
+      "-map", "0:a?",
+      "-c:v", "libx264",
+      "-preset", "ultrafast",
+      "-threads", "2",
+      "-crf", "22",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-movflags", "+faststart",
+      outputFileName
+    ];
+
+    const resSub = await execProcessAsync(ffmpegBin, ffArgsSub, {
+      cwd: jobDir,
+      timeoutMs: 180000,
+      onStderr: onProgress
+    });
+
+    if (resSub.code === 0 && fs.existsSync(outputFilePath) && fs.statSync(outputFilePath).size > 2000) {
+      console.log(`[Repurposer] Successfully rendered ${clip.id} via Tier 1b (subtitles filter)`);
+      return outputFilePath;
+    } else {
+      console.warn(`[Repurposer] Tier 1b subtitles render exit code ${resSub.code} for ${clip.id}:`, resSub.stderr.slice(-300));
+    }
+  } catch (err) {
+    console.warn(`[Repurposer] Tier 1b subtitles render failed for ${clip.id}:`, err);
   }
 
   // Tier 2: Without ASS filter (Standard Blurred Backdrop 9:16 layout)
